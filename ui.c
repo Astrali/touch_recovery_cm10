@@ -427,6 +427,171 @@ static void *progress_thread(void *cookie)
 }
 
 static int rel_sum = 0;
+
+// START KBC-DEV TOUCH CODE // TODO: integrate needed features from this soon
+/*
+#ifdef RECOVERY_TOUCH_GESTURE
+#define GESTURE_NULL_POS (-1000)
+static int s_cur_slot = 0;
+static int s_tracking_id = -1;
+static int s_first_y = GESTURE_NULL_POS;
+static int s_last_y = GESTURE_NULL_POS;
+static int s_first_x = GESTURE_NULL_POS;
+static int s_last_x = GESTURE_NULL_POS;
+#endif
+
+static int input_callback(int fd, short revents, void *data)
+{
+    struct input_event ev;
+    int ret;
+    int fake_key = 0;
+
+    ret = ev_get_input(fd, revents, &ev);
+    if (ret)
+        return -1;
+
+#ifdef BOARD_TOUCH_RECOVERY
+    if (touch_handle_input(fd, ev))
+      return 0;
+#endif
+
+    if (ev.type == EV_SYN) {
+#ifdef RECOVERY_TOUCH_GESTURE
+        s_cur_slot = 0;
+#endif
+        return 0;
+    } else if (ev.type == EV_REL) {
+        if (ev.code == REL_Y) {
+            // accumulate the up or down motion reported by
+            // the trackball. When it exceeds a threshold
+            // (positive or negative), fake an up/down
+            // key event.
+            rel_sum += ev.value;
+            if (rel_sum > 3) {
+                fake_key = 1;
+                ev.type = EV_KEY;
+                ev.code = KEY_DOWN;
+                ev.value = 1;
+                rel_sum = 0;
+            } else if (rel_sum < -3) {
+                fake_key = 1;
+                ev.type = EV_KEY;
+                ev.code = KEY_UP;
+                ev.value = 1;
+                rel_sum = 0;
+            }
+        }
+#ifdef RECOVERY_TOUCH_GESTURE
+    } else if (ev.type == EV_ABS) {
+        if (ev.code == ABS_MT_SLOT) {
+            s_cur_slot = ev.value;
+            return 0;
+        }
+        if (s_cur_slot != 0) {
+            // use slot0 only
+            return 0;
+        }
+
+#if 0
+switch (ev.code) {
+case ABS_MT_TRACKING_ID:
+LOGE("ev code=ABS_MT_TRACKING_ID value=%d\n", ev.value);
+break;
+case ABS_MT_ORIENTATION:
+LOGE("ev code=ABS_MT_ORIENTATION value=%d\n", ev.value);
+break;
+case ABS_MT_POSITION_X:
+LOGE("ev code=ABS_MT_POSITION_X value=%d\n", ev.value);
+break;
+case ABS_MT_POSITION_Y:
+LOGE("ev code=ABS_MT_POSITION_Y value=%d\n", ev.value);
+break;
+case ABS_MT_TOUCH_MAJOR:
+LOGE("ev code=ABS_MT_TOUCH_MAJOR value=%d\n", ev.value);
+break;
+case ABS_MT_TOUCH_MINOR:
+LOGE("ev code=ABS_MT_TOUCH_MINOR value=%d\n", ev.value);
+break;
+case ABS_MT_BLOB_ID:
+LOGE("ev code=ABS_MT_BLOB_ID value=%d\n", ev.value);
+break;
+case ABS_MT_TOOL_TYPE:
+LOGE("ev code=ABS_MT_TOOL_TYPE value=%d\n", ev.value);
+break;
+case ABS_MT_PRESSURE:
+LOGE("ev code=ABS_MT_PRESSURE value=%d\n", ev.value);
+break;
+}
+#endif
+
+        if (ev.code == ABS_MT_TRACKING_ID) {
+            s_tracking_id = ev.value;
+            if (s_tracking_id == -1) {
+                if ((abs(s_last_y - s_first_y) <= GESTURE_TOUCH_THRED)
+                && (abs(s_last_x - s_first_x) <= GESTURE_TOUCH_THRED)) {
+                    s_first_y = s_last_y = GESTURE_NULL_POS;
+                    s_first_x = s_last_x = GESTURE_NULL_POS;
+                    fake_key = 1;
+                    ev.type = EV_KEY;
+                    ev.code = DEVICE_KEY_HOME;
+                    ev.value = 1;
+                    rel_sum = 0;
+                } else if (s_last_x - s_first_x > GESTURE_BACK_SWIPE_THRED) {
+                    s_first_y = s_last_y = GESTURE_NULL_POS;
+                    s_first_x = s_last_x = GESTURE_NULL_POS;
+                    fake_key = 1;
+                    ev.type = EV_KEY;
+                    ev.code = KEY_BACK;
+                    ev.value = 1;
+                    rel_sum = 0;
+                } else {
+                    s_first_y = s_last_y = GESTURE_NULL_POS;
+                    s_first_x = s_last_x = GESTURE_NULL_POS;
+                    return 0;
+                }
+            }
+        } else if (ev.code == ABS_MT_POSITION_Y) {
+            if (s_tracking_id != -1) {
+                if (s_last_y == GESTURE_NULL_POS) {
+                    s_first_y = s_last_y = ev.value;
+                } else {
+                    int val = ev.value - s_last_y;
+                    int abs_val = abs(val);
+                    if (abs_val > GESTURE_UD_SWIPE_THRED) {
+                        s_last_y = ev.value;
+                        if (val > 0) {
+                            fake_key = 1;
+                            ev.type = EV_KEY;
+                            ev.code = KEY_VOLUMEDOWN;
+                            ev.value = 1;
+                            rel_sum = 0;
+                        } else {
+                            fake_key = 1;
+                            ev.type = EV_KEY;
+                            ev.code = KEY_VOLUMEUP;
+                            ev.value = 1;
+                            rel_sum = 0;
+                        }
+                    }
+                }
+            }
+        } else if (ev.code == ABS_MT_POSITION_X) {
+            if (s_tracking_id != -1) {
+                if (s_last_x == GESTURE_NULL_POS) {
+                    s_first_x = s_last_x = ev.value;
+                } else {
+                    s_last_x = ev.value;
+                }
+            }
+        }
+#endif
+    } else {
+        rel_sum = 0;
+    }
+*/
+//END KBC-DEV TOCH CODE
+
+ //START GWEEDO TOUCH CODE
 static int in_touch = 0; //1 = in a touch
 static int slide_right = 0;
 static int slide_left = 0;
@@ -489,16 +654,57 @@ static int input_callback(int fd, short revents, void *data)
         rel_sum = 0;
     }
 
+/* // debugging code to understand ABS_MT codes
 #ifdef SK8S_DEBUG_UI
-    printf("ev.type: %x, ev.code: %x, ev.value: %i\n", ev.type, ev.code, ev.value);
+//    printf("ev.type: %x, ev.code: %x, ev.value: %i\n", ev.type, ev.code, ev.value);
+switch (ev.code) {
+	case ABS_MT_TRACKING_ID:
+	LOGE("ev code=ABS_MT_TRACKING_ID value=%d\n", ev.value);
+	break;
+
+	case ABS_MT_ORIENTATION:
+	LOGE("ev code=ABS_MT_ORIENTATION value=%d\n", ev.value);
+	break;
+
+	case ABS_MT_POSITION_X:
+	LOGE("ev code=ABS_MT_POSITION_X value=%d\n", ev.value);
+	break;
+
+	case ABS_MT_POSITION_Y:
+	LOGE("ev code=ABS_MT_POSITION_Y value=%d\n", ev.value);
+	break;
+
+	case ABS_MT_TOUCH_MAJOR:
+	LOGE("ev code=ABS_MT_TOUCH_MAJOR value=%d\n", ev.value);
+	break;
+
+	case ABS_MT_TOUCH_MINOR:
+	LOGE("ev code=ABS_MT_TOUCH_MINOR value=%d\n", ev.value);
+	break;
+
+	case ABS_MT_BLOB_ID:
+	LOGE("ev code=ABS_MT_BLOB_ID value=%d\n", ev.value);
+	break;
+
+	case ABS_MT_TOOL_TYPE:
+	LOGE("ev code=ABS_MT_TOOL_TYPE value=%d\n", ev.value);
+	break;
+
+	case ABS_MT_PRESSURE:
+	LOGE("ev code=ABS_MT_PRESSURE value=%d\n", ev.value);
+	break;
+}
 #endif
-//    if(ev.type == EV_ABS && ev.code == ABS_MT_TRACKING_ID) {  //debugging
-    if (ev.type == 3 && ev.code == 48 && ev.value != 0) {
+*/
+
+    if(ev.type == EV_ABS && ev.code == ABS_MT_TRACKING_ID && ev.value != 0) {  //debugging
+//    if (ev.type == 3 && ev.code == 48 && ev.value != 0) {
         if (in_touch == 0) {
             in_touch = 1; //starting to track touch...
             reset_gestures();
         }
-    } else if (ev.type == 3 && ev.code == 48 && ev.value == 0) {
+//    } else if (ev.type == 3 && ev.code == 48 && ev.value == 0) {
+    } else if(ev.type == EV_ABS && ev.code == ABS_MT_TRACKING_ID && ev.value == 0) {  //debugging
             //finger lifted! lets run with this
             ev.type = EV_KEY; //touch panel support!!!
             int keywidth = gr_get_width(surface) / 4;
@@ -534,8 +740,8 @@ static int input_callback(int fd, short revents, void *data)
             ev.value = 1;
             in_touch = 0;
             reset_gestures();
-    } else if (ev.type == 3 && ev.code == 53) {
-//    } else if(ev.type == EV_ABS && ev.code == ABS_MT_POSITION_X) {  //debugging
+//    } else if (ev.type == 3 && ev.code == 53) {
+    } else if(ev.type == EV_ABS && ev.code == ABS_MT_POSITION_X) {  //debugging
         old_x = touch_x;
         touch_x = ev.value;
         if (old_x != 0)
@@ -547,24 +753,24 @@ static int input_callback(int fd, short revents, void *data)
 		printf("Gesture forward generated\n");
 #endif
                 slide_right = 1;
-                //ev.code = KEY_ENTER;
-                //ev.type = EV_KEY;
+                ev.code = KEY_ENTER;
+                ev.type = EV_KEY;
                 reset_gestures();
     } else if(diff_x < ((gr_fb_width() / 4) * -1)) {
 #ifdef SK8S_DEBUG_UI
 		printf("Gesture back generated\n");
 #endif
                 slide_left = 1;
-                //ev.code = KEY_BACK;
-                //ev.type = EV_KEY;
+                ev.code = KEY_BACK;
+                ev.type = EV_KEY;
                 reset_gestures();
             }
         } else {
             input_buttons();
             //reset_gestures();
         }
-//    } else if(ev.type == EV_ABS && ev.code == ABS_MT_POSITION_Y) {
-    } else if (ev.type == 3 && ev.code == 54) {
+    } else if(ev.type == EV_ABS && ev.code == ABS_MT_POSITION_Y) {
+//    } else if (ev.type == 3 && ev.code == 54) {
         old_y = touch_y;
         touch_y = ev.value;
         if (old_y != 0)
@@ -591,6 +797,8 @@ static int input_callback(int fd, short revents, void *data)
             //reset_gestures();
         }
     }
+
+//END GWEEDO TOUCH CODE
 
     if (ev.type != EV_KEY || ev.code > KEY_MAX)
         return 0;
