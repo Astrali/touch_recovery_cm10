@@ -428,17 +428,18 @@ static void *progress_thread(void *cookie)
 
 static int rel_sum = 0;
 
-// START KBC-DEV TOUCH CODE // TODO: integrate needed features from this soon
-/*
-#ifdef RECOVERY_TOUCH_GESTURE
+// START KBC-DEV TOUCH CODE
+
 #define GESTURE_NULL_POS (-1000)
+#define GESTURE_UD_SWIPE_THRED (30)
+#define GESTURE_BACK_SWIPE_THRED (-100)
+#define GESTURE_TOUCH_THRED (3)
 static int s_cur_slot = 0;
 static int s_tracking_id = -1;
 static int s_first_y = GESTURE_NULL_POS;
 static int s_last_y = GESTURE_NULL_POS;
 static int s_first_x = GESTURE_NULL_POS;
 static int s_last_x = GESTURE_NULL_POS;
-#endif
 
 static int input_callback(int fd, short revents, void *data)
 {
@@ -456,9 +457,7 @@ static int input_callback(int fd, short revents, void *data)
 #endif
 
     if (ev.type == EV_SYN) {
-#ifdef RECOVERY_TOUCH_GESTURE
         s_cur_slot = 0;
-#endif
         return 0;
     } else if (ev.type == EV_REL) {
         if (ev.code == REL_Y) {
@@ -481,7 +480,6 @@ static int input_callback(int fd, short revents, void *data)
                 rel_sum = 0;
             }
         }
-#ifdef RECOVERY_TOUCH_GESTURE
     } else if (ev.type == EV_ABS) {
         if (ev.code == ABS_MT_SLOT) {
             s_cur_slot = ev.value;
@@ -491,8 +489,7 @@ static int input_callback(int fd, short revents, void *data)
             // use slot0 only
             return 0;
         }
-
-#if 0
+/*
 switch (ev.code) {
 case ABS_MT_TRACKING_ID:
 LOGE("ev code=ABS_MT_TRACKING_ID value=%d\n", ev.value);
@@ -522,8 +519,7 @@ case ABS_MT_PRESSURE:
 LOGE("ev code=ABS_MT_PRESSURE value=%d\n", ev.value);
 break;
 }
-#endif
-
+*/
         if (ev.code == ABS_MT_TRACKING_ID) {
             s_tracking_id = ev.value;
             if (s_tracking_id == -1) {
@@ -533,10 +529,10 @@ break;
                     s_first_x = s_last_x = GESTURE_NULL_POS;
                     fake_key = 1;
                     ev.type = EV_KEY;
-                    ev.code = DEVICE_KEY_HOME;
+                    ev.code = KEY_ENTER;
                     ev.value = 1;
                     rel_sum = 0;
-                } else if (s_last_x - s_first_x > GESTURE_BACK_SWIPE_THRED) {
+                } else if (s_last_x - s_first_x < GESTURE_BACK_SWIPE_THRED) {
                     s_first_y = s_last_y = GESTURE_NULL_POS;
                     s_first_x = s_last_x = GESTURE_NULL_POS;
                     fake_key = 1;
@@ -584,14 +580,13 @@ break;
                 }
             }
         }
-#endif
     } else {
         rel_sum = 0;
     }
-*/
 //END KBC-DEV TOCH CODE
 
- //START GWEEDO TOUCH CODE
+/*
+//START GWEEDO TOUCH CODE
 static int in_touch = 0; //1 = in a touch
 static int slide_right = 0;
 static int slide_left = 0;
@@ -654,7 +649,7 @@ static int input_callback(int fd, short revents, void *data)
         rel_sum = 0;
     }
 
-/* // debugging code to understand ABS_MT codes
+ // debugging code to understand ABS_MT codes
 #ifdef SK8S_DEBUG_UI
 //    printf("ev.type: %x, ev.code: %x, ev.value: %i\n", ev.type, ev.code, ev.value);
 switch (ev.code) {
@@ -695,7 +690,6 @@ switch (ev.code) {
 	break;
 }
 #endif
-*/
 
     if(ev.type == EV_ABS && ev.code == ABS_MT_TRACKING_ID && ev.value != 0) {  //debugging
 //    if (ev.type == 3 && ev.code == 48 && ev.value != 0) {
@@ -747,7 +741,8 @@ switch (ev.code) {
         if (old_x != 0)
             diff_x += touch_x - old_x;
 
-	if (touch_y < (gr_fb_height() - gr_get_height(surface))) {
+//	if (touch_y < (gr_fb_height() - gr_get_height(surface))) {
+      if (touch_y < (gr_fb_height() - 80)) {
             if (diff_x > (gr_fb_width() / 4)) {
 #ifdef SK8S_DEBUG_UI
 		printf("Gesture forward generated\n");
@@ -797,7 +792,7 @@ switch (ev.code) {
             //reset_gestures();
         }
     }
-
+*/
 //END GWEEDO TOUCH CODE
 
     if (ev.type != EV_KEY || ev.code > KEY_MAX)
@@ -1408,6 +1403,8 @@ void ui_increment_frame() {
         (gInstallingFrame + 1) % ui_parameters.installing_frames;
 }
 
+// soft keys
+/*
 int input_buttons()
 {
     int final_code = 0;
@@ -1456,7 +1453,8 @@ int input_buttons()
         return 0;
     }
 }
-
+*/
+// end soft keys
 int get_batt_stats(void)
 {
     static int level = -1;
