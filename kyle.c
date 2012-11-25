@@ -63,38 +63,6 @@ void ui_print_custom_logtail(const char* filename, int nb_lines) {
     }
 }
 
-void show_darkside_menu() {
-    static char* headers[] = {  "Darkside Tools (BE CAREFUL!)",
-                                "",
-                                NULL
-    };
-
-    char* list[] = { "darkside.cache.wipe",
-        "darkside.super.wipe_ext4 (BE CAREFUL!)",
-        NULL
-    };
-
-    int chosen_item = get_menu_selection(headers, list, 0, 0);
-    switch (chosen_item) {
-        case 0:
-                ensure_path_mounted("/sdcard");
-                if( access( "/sdcard/clockworkmod/.darkside/cachewipe.zip", F_OK ) != -1) {
-                install_zip("/sdcard/clockworkmod/.darkside/cachewipe.zip");
-                } else {
-                ui_print("No darkside files found in /sdcard/clockworkmod/.darkside");
-                }
-                break;
-        case 1:
-                ensure_path_mounted("/sdcard");
-                if( access( "/sdcard/clockworkmod/.darkside/superwipe.zip", F_OK ) != -1) {
-                install_zip("/sdcard/clockworkmod/.darkside/superwipe.zip");
-                } else {
-                ui_print("No darkside files found in /sdcard/clockworkmod/.darkside");
-                }
-                break;
-    }
-}
-
   //start show flash kernel menu (flash/restore from default location)
 void flash_kernel_default (const char* kernel_path) {
     static char* headers[] = { "Flash kernel image",
@@ -663,7 +631,6 @@ void show_extras_menu()
                             "hide/show backup & restore progress",
 			    "set android_secure internal/external",
 			    "aroma file manager",
-			    "darkside tools",
 			    "create custom zip",
 			    "run custom openrecoveryscript",
 			    "recovery info",
@@ -736,9 +703,6 @@ void show_extras_menu()
                 custom_aroma_menu();
                 break;
 	    case 5:
-		show_darkside_menu();
-		break;
-	    case 6:
 		ensure_path_mounted("/system");
 		ensure_path_mounted("/sdcard");
                 if (confirm_selection("Create a zip from system and boot?", "Yes - Create custom zip")) {
@@ -762,16 +726,17 @@ void show_extras_menu()
 	}
 		ensure_path_unmounted("/system");
 		break;
-	    case 7:
+	    case 6:
 		show_custom_ors_menu("/sdcard");
 		break;
-	    case 8:
+	    case 7:
                 ui_print(EXPAND(RECOVERY_VERSION)"\n");
                 ui_print("Build version: "EXPAND(SK8S_BUILD)" - "EXPAND(TARGET_DEVICE)"\n");
                 ui_print("CWM Base version: "EXPAND(CWM_BASE_VERSION)"\n");
                 //ui_print(EXPAND(BUILD_DATE)"\n");
-                ui_print("Build Date: %s at %s\n", __DATE__, __TIME__);
-	    case 9:
+                //ui_print("Build Date: %s at %s\n", __DATE__, __TIME__);
+		ui_print("Build Date: 11/24/2012 4:10 am");
+	    case 8:
 		if (volume_for_path("/efs") != NULL)
                     show_efs_menu();
                 break;

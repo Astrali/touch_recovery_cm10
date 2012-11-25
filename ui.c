@@ -51,7 +51,10 @@ static int gShowBackButton = 0;
 #define MIN_LOG_ROWS 3
 
 #define CHAR_WIDTH 10
-#define CHAR_HEIGHT 36
+// skyrocket
+//#define CHAR_HEIGHT 36
+//LGOG
+#define CHAR_HEIGHT 40
 
 #define UI_WAIT_KEY_TIMEOUT_SEC    3600
 #define UI_KEY_REPEAT_INTERVAL 80
@@ -86,8 +89,13 @@ static const struct { gr_surface* surface; const char *name; } BITMAPS[] = {
     { &gBackgroundIcon[BACKGROUND_ICON_FIRMWARE_ERROR], "icon_firmware_error" },
     { &gProgressBarEmpty,               "progress_empty" },
     { &gProgressBarFill,                "progress_fill" },
+#ifdef DEVICE_RES_768
+    { &gVirtualKeys,                    "virtual_keys_768" },
+    { &gBackground,                "stitch_768" },
+#else // TODO: add more resolutions if needed
     { &gVirtualKeys,                    "virtual_keys" },
-    { &gBackground,                "stitch" },
+    { &gBackground,                "stitch_480" },
+#endif
     { NULL,                             NULL },
 };
 
@@ -430,10 +438,17 @@ static int rel_sum = 0;
 
 // START KBC-DEV TOUCH CODE
 
-#define GESTURE_NULL_POS (-1000)
+#ifdef TARGET_DEVICE_E970
+#define GESTURE_UD_SWIPE_THRED (80)
+#define GESTURE_BACK_SWIPE_THRED (-200)
+#define GESTURE_TOUCH_THRED (3)
+#else
 #define GESTURE_UD_SWIPE_THRED (30)
 #define GESTURE_BACK_SWIPE_THRED (-100)
 #define GESTURE_TOUCH_THRED (3)
+#endif
+
+#define GESTURE_NULL_POS (-1000)
 static int s_cur_slot = 0;
 static int s_tracking_id = -1;
 static int s_first_y = GESTURE_NULL_POS;
