@@ -89,7 +89,7 @@ static const struct { gr_surface* surface; const char *name; } BITMAPS[] = {
     { &gBackgroundIcon[BACKGROUND_ICON_FIRMWARE_ERROR], "icon_firmware_error" },
     { &gProgressBarEmpty,               "progress_empty" },
     { &gProgressBarFill,                "progress_fill" },
-#ifdef DEVICE_RES_768
+#ifdef TARGET_DEVICE_E970
     { &gVirtualKeys,                    "virtual_keys_768" },
     { &gBackground,                "stitch_768" },
 #else // TODO: add more resolutions if needed
@@ -273,8 +273,11 @@ static void draw_text_line(int row, const char* t, int align) {
 }
 
 //#define MENU_TEXT_COLOR 255, 160, 49, 255
-//#define MENU_TEXT_COLOR 0, 191, 255, 255 //blue
-#define MENU_TEXT_COLOR 1, 1, 1, 255 //black
+#ifdef TARGET_DEVICE_E970
+#define MENU_TEXT_COLOR 0, 0, 0, 255 //black
+#else
+#define MENU_TEXT_COLOR 0, 191, 255, 255 //blue
+#endif
 #define NORMAL_TEXT_COLOR 200, 200, 200, 255
 #define HEADER_TEXT_COLOR NORMAL_TEXT_COLOR
 
