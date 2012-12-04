@@ -735,7 +735,7 @@ void show_extras_menu()
                 ui_print("CWM Base version: "EXPAND(CWM_BASE_VERSION)"\n");
                 //ui_print(EXPAND(BUILD_DATE)"\n");
                 //ui_print("Build Date: %s at %s\n", __DATE__, __TIME__);
-		ui_print("Build Date: 11/24/2012 4:10 am\n");
+		ui_print("Build Date: 12/03/2012 4:30 pm\n");
 	    case 8:
 		if (volume_for_path("/efs") != NULL)
                     show_efs_menu();
