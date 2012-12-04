@@ -449,6 +449,7 @@ static int rel_sum = 0;
 #else
 #define GESTURE_UD_SWIPE_THRED (30)
 #define GESTURE_BACK_SWIPE_THRED (-100)
+#define GESTURE_FORWARD_SWIPE_THRED (100)
 #define GESTURE_TOUCH_THRED (3)
 #endif
 
@@ -542,8 +543,12 @@ break;
         if (ev.code == ABS_MT_TRACKING_ID) {
             s_tracking_id = ev.value;
             if (s_tracking_id == -1) {
+#ifdef TAP_TO_SELECT
                 if ((abs(s_last_y - s_first_y) <= GESTURE_TOUCH_THRED)
                 && (abs(s_last_x - s_first_x) <= GESTURE_TOUCH_THRED)) {
+#else
+		if (s_last_x - s_first_x > GESTURE_FORWARD_SWIPE_THRED) {
+#endif
                     s_first_y = s_last_y = GESTURE_NULL_POS;
                     s_first_x = s_last_x = GESTURE_NULL_POS;
                     fake_key = 1;
