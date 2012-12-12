@@ -1,4 +1,5 @@
 #!/sbin/sh
+# *** Thanks to PhilZ for this! *** #
 
 EFS_PATH=`cat /etc/recovery.fstab | grep -v "#" | grep /efs | awk '{print $3}'`;
 

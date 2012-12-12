@@ -1,4 +1,5 @@
 #!/sbin/sh
+# *** Thanks to PhilZ for this *** #
 
 #in cwm, sdcard can be internal sd or external sd on phones with /emmc and no /external_sd defined in recovery.fstab
 INT_SD="/sdcard";

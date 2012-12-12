@@ -52,6 +52,8 @@ LOCAL_CFLAGS += -DRECOVERY_VERSION="$(RECOVERY_VERSION)"
 RECOVERY_API_VERSION := 2
 LOCAL_CFLAGS += -DRECOVERY_API_VERSION=$(RECOVERY_API_VERSION)
 
+#Copyright (C) 2011-2012 sakuramilk <c.sakuramilk@gmail.com>
+#adapted from kbc-developers
 #Samsung Galaxy S2 LTE Skyrocket
 ifeq ($(TARGET_PRODUCT), cm_skyrocket)
 TARGET_DEVICE := i727

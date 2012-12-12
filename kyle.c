@@ -44,6 +44,8 @@
 #include "kyle.h"
 #include "recovery.h"
 
+// # *** Thanks to PhilZ for all of this! *** #
+// He has been such a HUGE part of where this recovery has ended up
 void ui_print_custom_logtail(const char* filename, int nb_lines) {
     char * backup_log;
     char tmp[PATH_MAX];

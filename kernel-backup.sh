@@ -1,4 +1,5 @@
 #!/sbin/sh
+# *** Thanks to PhilZ for this! *** #
 
 BOOT_PATH=`cat /etc/recovery.fstab | grep -v "#" | grep /boot | awk '{print $3}'`;
 
