@@ -440,7 +440,7 @@ static int rel_sum = 0;
 // # *** adapted from kbc-developer *** #
 
 #ifdef TARGET_DEVICE_E970
-#define GESTURE_UD_SWIPE_THRED (250)
+#define GESTURE_UD_SWIPE_THRED (200)
 #define GESTURE_BACK_SWIPE_THRED (-250)
 #define GESTURE_FORWARD_SWIPE_THRED (250)
 #define GESTURE_TOUCH_THRED (3)
@@ -451,10 +451,12 @@ static int rel_sum = 0;
 #define GESTURE_BACK_SWIPE_THRED (-200)
 #define GESTURE_FORWARD_SWIPE_THRED (200)
 #define GESTURE_TOUCH_THRED (3)
-#else
-#define GESTURE_UD_SWIPE_THRED (200)  //(30)
-#define GESTURE_BACK_SWIPE_THRED (-250)  //(-100)
-#define GESTURE_FORWARD_SWIPE_THRED (250)  //(100)
+#endif
+
+#ifdef TARGET_DEVICE_I727
+#define GESTURE_UD_SWIPE_THRED (30)
+#define GESTURE_BACK_SWIPE_THRED (-100)
+#define GESTURE_FORWARD_SWIPE_THRED (100)
 #define GESTURE_TOUCH_THRED (3)
 #endif
 
