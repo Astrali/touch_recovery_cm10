@@ -50,7 +50,7 @@ static int gShowBackButton = 0;
 
 #define MIN_LOG_ROWS 3
 
-#define CHAR_WIDTH 10
+#define CHAR_WIDTH 15
 // skyrocket
 //#define CHAR_HEIGHT 36
 //LGOG
@@ -91,7 +91,7 @@ static const struct { gr_surface* surface; const char *name; } BITMAPS[] = {
     { &gProgressBarFill,                "progress_fill" },
 #ifdef TARGET_DEVICE_E970
     { &gVirtualKeys,                    "virtual_keys_768" },
-    { &gBackground,                "stitch_768" },
+    { &gBackground,                "stitch-orig" },
 #else // TODO: add more resolutions if needed
     { &gVirtualKeys,                    "virtual_keys" },
     { &gBackground,                "stitch_480" },
@@ -273,11 +273,7 @@ static void draw_text_line(int row, const char* t, int align) {
 }
 
 //#define MENU_TEXT_COLOR 255, 160, 49, 255
-#ifdef TARGET_DEVICE_E970
-#define MENU_TEXT_COLOR 0, 0, 0, 255 //black
-#else
 #define MENU_TEXT_COLOR 0, 191, 255, 255 //blue
-#endif
 #define NORMAL_TEXT_COLOR 200, 200, 200, 255
 #define HEADER_TEXT_COLOR NORMAL_TEXT_COLOR
 
@@ -441,10 +437,12 @@ static void *progress_thread(void *cookie)
 static int rel_sum = 0;
 
 // START KBC-DEV TOUCH CODE
+// # *** adapted from kbc-developer *** #
 
 #ifdef TARGET_DEVICE_E970
-#define GESTURE_UD_SWIPE_THRED (80)
-#define GESTURE_BACK_SWIPE_THRED (-200)
+#define GESTURE_UD_SWIPE_THRED (250)
+#define GESTURE_BACK_SWIPE_THRED (-250)
+#define GESTURE_FORWARD_SWIPE_THRED (250)
 #define GESTURE_TOUCH_THRED (3)
 #endif
 
@@ -454,9 +452,9 @@ static int rel_sum = 0;
 #define GESTURE_FORWARD_SWIPE_THRED (200)
 #define GESTURE_TOUCH_THRED (3)
 #else
-#define GESTURE_UD_SWIPE_THRED (30)
-#define GESTURE_BACK_SWIPE_THRED (-100)
-#define GESTURE_FORWARD_SWIPE_THRED (100)
+#define GESTURE_UD_SWIPE_THRED (200)  //(30)
+#define GESTURE_BACK_SWIPE_THRED (-250)  //(-100)
+#define GESTURE_FORWARD_SWIPE_THRED (250)  //(100)
 #define GESTURE_TOUCH_THRED (3)
 #endif
 
@@ -551,8 +549,7 @@ break;
             s_tracking_id = ev.value;
             if (s_tracking_id == -1) {
 #ifdef TAP_TO_SELECT
-                if ((abs(s_last_y - s_first_y) <= GESTURE_TOUCH_THRED)
-                && (abs(s_last_x - s_first_x) <= GESTURE_TOUCH_THRED)) {
+                if ((abs(s_last_y - s_first_y) <= GESTURE_TOUCH_THRED) && (abs(s_last_x - s_first_x) <= GESTURE_TOUCH_THRED)) {
 #else
 		if (s_last_x - s_first_x > GESTURE_FORWARD_SWIPE_THRED) {
 #endif

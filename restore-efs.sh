@@ -3,8 +3,10 @@
 
 EFS_PATH=`cat /etc/recovery.fstab | grep -v "#" | grep /efs | awk '{print $3}'`;
 
+mkdir -p "$1"/clockworkmod/.efsbackup/;
+
 echo "">>"$1"/clockworkmod/.efsbackup/log.txt;
-echo "Restore $1/clockworkmod/.efsbackup/efs.img to $EFS_PATH">>"$1"/clockworkmod/.efsbackup/log.txt;
+echo "Restore $1/clockworkmod/.efsbackup/efs.img to $MISC_PATH">>"$1"/clockworkmod/.efsbackup/log.txt;
 (cat "$1"/clockworkmod/.efsbackup/efs.img > "$EFS_PATH") 2>> "$1"/clockworkmod/.efsbackup/log.txt;
 
 if [ $? = 0 ];

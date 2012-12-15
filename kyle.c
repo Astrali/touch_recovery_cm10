@@ -106,7 +106,7 @@ void flash_kernel_default (const char* kernel_path) {
     }
 }
 
-  //start show partition backup/restore menu
+  //start show efs partition backup/restore menu
 void show_efs_menu() {
     static char* headers[] = { "EFS/Boot Backup & Restore",
                                 "",
@@ -173,7 +173,7 @@ void show_efs_menu() {
                 }
                 ensure_path_unmounted("/efs");
                 if (access("/sdcard/clockworkmod/.efsbackup/efs.img", F_OK ) != -1) {
-                    if (confirm_selection("Confirm?", "Yes - Restore EFS")) {
+                    if (confirm_selection("Confirm?", "Yes - Restore /efs")) {
                         __system("restore-efs.sh /sdcard");
                         ui_print_custom_logtail("/sdcard/clockworkmod/.efsbackup/log.txt", 3);
                     }
@@ -207,7 +207,7 @@ void show_efs_menu() {
                     }
                     ensure_path_unmounted("/efs");
                     char tmp[PATH_MAX];
-                    sprintf(tmp, "efs-backup.sh %s", other_sd);
+                    sprintf(tmp, "backup-efs.sh %s", other_sd);
                     __system(tmp);
                     //prints log
                     char logname[PATH_MAX];
@@ -225,9 +225,9 @@ void show_efs_menu() {
                     char filename[PATH_MAX];
                     sprintf(filename, "%s/clockworkmod/.efsbackup/efs.img", other_sd);
                     if (access(filename, F_OK ) != -1) {
-                        if (confirm_selection("Confirm?", "Yes - Restore EFS")) {
+                        if (confirm_selection("Confirm?", "Yes - Restore /efs")) {
                             char tmp[PATH_MAX];
-                            sprintf(tmp, "efs-restore.sh %s", other_sd);
+                            sprintf(tmp, "restore-efs.sh %s", other_sd);
                             __system(tmp);
                             //prints log
                             char logname[PATH_MAX];
@@ -243,11 +243,154 @@ void show_efs_menu() {
     }
 }
 
+  //start show partition backup/restore menu
+void show_misc_menu() {
+    static char* headers[] = { "Misc/Boot Backup & Restore",
+                                "",
+                                NULL
+    };
+
+    static char* list[] = { "Backup /boot to sdcard",
+                     "Flash /boot from sdcard",
+                     "Backup /misc to sdcard",
+                     "Restore /misc from sdcard",
+                     NULL,
+                     NULL,
+                     NULL,
+                     NULL,
+                     NULL
+    };
+
+    char *other_sd = NULL;
+    if (volume_for_path("/emmc") != NULL) {
+        other_sd = "/emmc";
+        list[4] = "Backup /boot to Internal sdcard";
+        list[5] = "Flash /boot from Internal sdcard";
+        list[6] = "Backup /misc to Internal sdcard";
+        list[7] = "Restore /misc from Internal sdcard";
+    } else if (volume_for_path("/external_sd") != NULL) {
+        other_sd = "/external_sd";
+        list[4] = "Backup /boot to External sdcard";
+        list[5] = "Flash /boot from External sdcard";
+        list[6] = "Backup /misc to External sdcard";
+        list[7] = "Restore /misc from External sdcard";
+    }
+
+    for (;;) {
+        //header function so that "Toggle menu" doesn't reset to main menu on action selected
+        int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
+        if (chosen_item == GO_BACK)
+            break;
+        switch (chosen_item)
+        {
+            case 0:
+                if (ensure_path_mounted("/sdcard") != 0) {
+                    ui_print("Can't mount /sdcard\n");
+                    break;
+                }
+                __system("kernel-backup.sh /sdcard");
+                ui_print_custom_logtail("/sdcard/clockworkmod/.kernel_bak/log.txt", 3);
+                break;
+            case 1:
+                flash_kernel_default("/sdcard");
+                break;
+            case 2:
+                if (ensure_path_mounted("/sdcard") != 0) {
+                    ui_print("Can't mount /sdcard\n");
+                    break;
+                }
+                ensure_path_unmounted("/misc");
+                __system("backup-misc.sh /sdcard");
+                ui_print_custom_logtail("/sdcard/clockworkmod/.miscbackup/log.txt", 3);
+                break;
+            case 3:
+                if (ensure_path_mounted("/sdcard") != 0) {
+                    ui_print("Can't mount /sdcard\n");
+                    break;
+                }
+                ensure_path_unmounted("/misc");
+                if (access("/sdcard/clockworkmod/.miscbackup/misc.img", F_OK ) != -1) {
+                    if (confirm_selection("Confirm?", "Yes - Restore /misc")) {
+                        __system("restore-misc.sh /sdcard");
+                        ui_print_custom_logtail("/sdcard/clockworkmod/.miscbackup/log.txt", 3);
+                    }
+                } else {
+                    ui_print("No misc.img backup found in sdcard.\n");
+                }
+                break;
+            case 4:
+                {
+                    if (ensure_path_mounted(other_sd) != 0) {
+                        ui_print("Can't mount %s\n", other_sd);
+                        break;
+                    }
+                    char tmp[PATH_MAX];
+                    sprintf(tmp, "kernel-backup.sh %s", other_sd);
+                    __system(tmp);
+                    //prints log
+                    char logname[PATH_MAX];
+                    sprintf(logname, "%s/clockworkmod/.kernel_bak/log.txt", other_sd);
+                    ui_print_custom_logtail(logname, 3);
+                }
+                break;
+            case 5:
+                flash_kernel_default(other_sd);
+                break;
+            case 6:
+                {
+                    if (ensure_path_mounted(other_sd) != 0) {
+                        ui_print("Can't mount %s\n", other_sd);
+                        break;
+                    }
+                    ensure_path_unmounted("/misc");
+                    char tmp[PATH_MAX];
+                    sprintf(tmp, "backup-misc.sh %s", other_sd);
+                    __system(tmp);
+                    //prints log
+                    char logname[PATH_MAX];
+                    sprintf(logname, "%s/clockworkmod/.miscbackup/log.txt", other_sd);
+                    ui_print_custom_logtail(logname, 3);
+                }
+                break;
+            case 7:
+                {
+                    if (ensure_path_mounted(other_sd) != 0) {
+                        ui_print("Can't mount %s\n", other_sd);
+                        break;
+                    }
+                    ensure_path_unmounted("/misc");
+                    char filename[PATH_MAX];
+                    sprintf(filename, "%s/clockworkmod/.miscbackup/misc.img", other_sd);
+                    if (access(filename, F_OK ) != -1) {
+                        if (confirm_selection("Confirm?", "Yes - Restore /misc")) {
+                            char tmp[PATH_MAX];
+                            sprintf(tmp, "restore-misc.sh %s", other_sd);
+                            __system(tmp);
+                            //prints log
+                            char logname[PATH_MAX];
+                            sprintf(logname, "%s/clockworkmod/.miscbackup/log.txt", other_sd);
+                            ui_print_custom_logtail(logname, 3);
+                        }
+                    } else {
+                        ui_print("No misc.img backup found in %s\n", other_sd);
+                    }
+                }
+                break;
+        }
+    }
+}
+
 int create_customzip(const char* custompath)
 {
     char command[PATH_MAX];
     sprintf(command, "create_update_zip.sh %s", custompath);
     __system(command);
+    ensure_path_mounted("/system");
+    ensure_path_mounted("/data");
+    ensure_path_mounted("/sdcard");
+    ui_print("Fixing permissions...\n");
+    __system("fix_permissions");
+    ui_print("Done!\n");
     return 0;
 }
 
@@ -633,13 +776,16 @@ void show_extras_menu()
                             "hide/show backup & restore progress",
 			    "set android_secure internal/external",
 			    "aroma file manager",
-			    "create custom zip",
+			    "create custom zip (BETA)",
 			    "run custom openrecoveryscript",
 			    "recovery info",
 			    NULL,
                             NULL };
 
-    if (volume_for_path("/efs") != NULL) {
+    if (volume_for_path("/misc") != NULL) {
+        list[9] = "Misc/Boot Backup & Restore";
+    }
+    else if (volume_for_path("/efs") != NULL) {
         list[9] = "EFS/Boot Backup & Restore";
     }
 
@@ -737,10 +883,14 @@ void show_extras_menu()
                 ui_print("CWM Base version: "EXPAND(CWM_BASE_VERSION)"\n");
                 //ui_print(EXPAND(BUILD_DATE)"\n");
                 //ui_print("Build Date: %s at %s\n", __DATE__, __TIME__);
-		ui_print("Build Date: 12/03/2012 4:30 pm\n");
+		ui_print("Build Date: 12/13/2012 11:40 pm\n");
 	    case 8:
-		if (volume_for_path("/efs") != NULL)
-                    show_efs_menu();
+		if (volume_for_path("/misc") != NULL) {
+                    show_misc_menu();
+		}
+		else if (volume_for_path("/efs") != NULL) {
+		    show_efs_menu();
+		}
                 break;
 	}
     }
