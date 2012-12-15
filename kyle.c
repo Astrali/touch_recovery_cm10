@@ -385,12 +385,6 @@ int create_customzip(const char* custompath)
     char command[PATH_MAX];
     sprintf(command, "create_update_zip.sh %s", custompath);
     __system(command);
-    ensure_path_mounted("/system");
-    ensure_path_mounted("/data");
-    ensure_path_mounted("/sdcard");
-    ui_print("Fixing permissions...\n");
-    __system("fix_permissions");
-    ui_print("Done!\n");
     return 0;
 }
 
