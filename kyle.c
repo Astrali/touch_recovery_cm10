@@ -877,7 +877,7 @@ void show_extras_menu()
                 ui_print("CWM Base version: "EXPAND(CWM_BASE_VERSION)"\n");
                 //ui_print(EXPAND(BUILD_DATE)"\n");
                 //ui_print("Build Date: %s at %s\n", __DATE__, __TIME__);
-		ui_print("Build Date: 12/13/2012 11:40 pm\n");
+		ui_print("Build Date: 12/17/2012 6:20 pm\n");
 	    case 8:
 		if (volume_for_path("/misc") != NULL) {
                     show_misc_menu();
