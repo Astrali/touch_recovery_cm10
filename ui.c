@@ -50,7 +50,7 @@ static int gShowBackButton = 0;
 
 #define MIN_LOG_ROWS 3
 
-#define CHAR_WIDTH 15
+#define CHAR_WIDTH 10
 // skyrocket
 //#define CHAR_HEIGHT 36
 //LGOG
@@ -91,7 +91,7 @@ static const struct { gr_surface* surface; const char *name; } BITMAPS[] = {
     { &gProgressBarFill,                "progress_fill" },
 #ifdef TARGET_DEVICE_E970
     { &gVirtualKeys,                    "virtual_keys_768" },
-    { &gBackground,                "stitch-orig" },
+    { &gBackground,                "stitch_768" },
 #else // TODO: add more resolutions if needed
     { &gVirtualKeys,                    "virtual_keys" },
     { &gBackground,                "stitch_480" },
@@ -273,7 +273,11 @@ static void draw_text_line(int row, const char* t, int align) {
 }
 
 //#define MENU_TEXT_COLOR 255, 160, 49, 255
+#ifdef TARGET_DEVICE_E970
+#define MENU_TEXT_COLOR 0, 0, 0, 255 //black
+#else
 #define MENU_TEXT_COLOR 0, 191, 255, 255 //blue
+#endif
 #define NORMAL_TEXT_COLOR 200, 200, 200, 255
 #define HEADER_TEXT_COLOR NORMAL_TEXT_COLOR
 
@@ -436,185 +440,9 @@ static void *progress_thread(void *cookie)
 
 static int rel_sum = 0;
 
-// START KBC-DEV TOUCH CODE
-// # *** adapted from kbc-developer *** #
-
-#ifdef TARGET_DEVICE_E970
-#define GESTURE_UD_SWIPE_THRED (200)
-#define GESTURE_BACK_SWIPE_THRED (-250)
-#define GESTURE_FORWARD_SWIPE_THRED (250)
-#define GESTURE_TOUCH_THRED (3)
+#ifdef KYLE_TOUCH_RECOVERY
+#include "/home/klaplante/recoverystuff/kyle_gesture.c"
 #endif
-
-#ifdef TARGET_DEVICE_D2ATT
-#define GESTURE_UD_SWIPE_THRED (80)
-#define GESTURE_BACK_SWIPE_THRED (-200)
-#define GESTURE_FORWARD_SWIPE_THRED (200)
-#define GESTURE_TOUCH_THRED (3)
-#endif
-
-#ifdef TARGET_DEVICE_I727
-#define GESTURE_UD_SWIPE_THRED (30)
-#define GESTURE_BACK_SWIPE_THRED (-100)
-#define GESTURE_FORWARD_SWIPE_THRED (100)
-#define GESTURE_TOUCH_THRED (3)
-#endif
-
-#define GESTURE_NULL_POS (-1000)
-static int s_cur_slot = 0;
-static int s_tracking_id = -1;
-static int s_first_y = GESTURE_NULL_POS;
-static int s_last_y = GESTURE_NULL_POS;
-static int s_first_x = GESTURE_NULL_POS;
-static int s_last_x = GESTURE_NULL_POS;
-
-static int input_callback(int fd, short revents, void *data)
-{
-    struct input_event ev;
-    int ret;
-    int fake_key = 0;
-
-    ret = ev_get_input(fd, revents, &ev);
-    if (ret)
-        return -1;
-
-#ifdef BOARD_TOUCH_RECOVERY
-    if (touch_handle_input(fd, ev))
-      return 0;
-#endif
-
-    if (ev.type == EV_SYN) {
-        s_cur_slot = 0;
-        return 0;
-    } else if (ev.type == EV_REL) {
-        if (ev.code == REL_Y) {
-            // accumulate the up or down motion reported by
-            // the trackball. When it exceeds a threshold
-            // (positive or negative), fake an up/down
-            // key event.
-            rel_sum += ev.value;
-            if (rel_sum > 3) {
-                fake_key = 1;
-                ev.type = EV_KEY;
-                ev.code = KEY_DOWN;
-                ev.value = 1;
-                rel_sum = 0;
-            } else if (rel_sum < -3) {
-                fake_key = 1;
-                ev.type = EV_KEY;
-                ev.code = KEY_UP;
-                ev.value = 1;
-                rel_sum = 0;
-            }
-        }
-    } else if (ev.type == EV_ABS) {
-        if (ev.code == ABS_MT_SLOT) {
-            s_cur_slot = ev.value;
-            return 0;
-        }
-        if (s_cur_slot != 0) {
-            // use slot0 only
-            return 0;
-        }
-/*
-switch (ev.code) {
-case ABS_MT_TRACKING_ID:
-LOGE("ev code=ABS_MT_TRACKING_ID value=%d\n", ev.value);
-break;
-case ABS_MT_ORIENTATION:
-LOGE("ev code=ABS_MT_ORIENTATION value=%d\n", ev.value);
-break;
-case ABS_MT_POSITION_X:
-LOGE("ev code=ABS_MT_POSITION_X value=%d\n", ev.value);
-break;
-case ABS_MT_POSITION_Y:
-LOGE("ev code=ABS_MT_POSITION_Y value=%d\n", ev.value);
-break;
-case ABS_MT_TOUCH_MAJOR:
-LOGE("ev code=ABS_MT_TOUCH_MAJOR value=%d\n", ev.value);
-break;
-case ABS_MT_TOUCH_MINOR:
-LOGE("ev code=ABS_MT_TOUCH_MINOR value=%d\n", ev.value);
-break;
-case ABS_MT_BLOB_ID:
-LOGE("ev code=ABS_MT_BLOB_ID value=%d\n", ev.value);
-break;
-case ABS_MT_TOOL_TYPE:
-LOGE("ev code=ABS_MT_TOOL_TYPE value=%d\n", ev.value);
-break;
-case ABS_MT_PRESSURE:
-LOGE("ev code=ABS_MT_PRESSURE value=%d\n", ev.value);
-break;
-}
-*/
-        if (ev.code == ABS_MT_TRACKING_ID) {
-            s_tracking_id = ev.value;
-            if (s_tracking_id == -1) {
-#ifdef TAP_TO_SELECT
-                if ((abs(s_last_y - s_first_y) <= GESTURE_TOUCH_THRED) && (abs(s_last_x - s_first_x) <= GESTURE_TOUCH_THRED)) {
-#else
-		if (s_last_x - s_first_x > GESTURE_FORWARD_SWIPE_THRED) {
-#endif
-                    s_first_y = s_last_y = GESTURE_NULL_POS;
-                    s_first_x = s_last_x = GESTURE_NULL_POS;
-                    fake_key = 1;
-                    ev.type = EV_KEY;
-                    ev.code = KEY_ENTER;
-                    ev.value = 1;
-                    rel_sum = 0;
-                } else if (s_last_x - s_first_x < GESTURE_BACK_SWIPE_THRED) {
-                    s_first_y = s_last_y = GESTURE_NULL_POS;
-                    s_first_x = s_last_x = GESTURE_NULL_POS;
-                    fake_key = 1;
-                    ev.type = EV_KEY;
-                    ev.code = KEY_BACK;
-                    ev.value = 1;
-                    rel_sum = 0;
-                } else {
-                    s_first_y = s_last_y = GESTURE_NULL_POS;
-                    s_first_x = s_last_x = GESTURE_NULL_POS;
-                    return 0;
-                }
-            }
-        } else if (ev.code == ABS_MT_POSITION_Y) {
-            if (s_tracking_id != -1) {
-                if (s_last_y == GESTURE_NULL_POS) {
-                    s_first_y = s_last_y = ev.value;
-                } else {
-                    int val = ev.value - s_last_y;
-                    int abs_val = abs(val);
-                    if (abs_val > GESTURE_UD_SWIPE_THRED) {
-                        s_last_y = ev.value;
-                        if (val > 0) {
-                            fake_key = 1;
-                            ev.type = EV_KEY;
-                            ev.code = KEY_VOLUMEDOWN;
-                            ev.value = 1;
-                            rel_sum = 0;
-                        } else {
-                            fake_key = 1;
-                            ev.type = EV_KEY;
-                            ev.code = KEY_VOLUMEUP;
-                            ev.value = 1;
-                            rel_sum = 0;
-                        }
-                    }
-                }
-            }
-        } else if (ev.code == ABS_MT_POSITION_X) {
-            if (s_tracking_id != -1) {
-                if (s_last_x == GESTURE_NULL_POS) {
-                    s_first_x = s_last_x = ev.value;
-                } else {
-                    s_last_x = ev.value;
-                }
-            }
-        }
-    } else {
-        rel_sum = 0;
-    }
-//END KBC-DEV TOUCH CODE
-
     if (ev.type != EV_KEY || ev.code > KEY_MAX)
         return 0;
 
@@ -1223,58 +1051,9 @@ void ui_increment_frame() {
         (gInstallingFrame + 1) % ui_parameters.installing_frames;
 }
 
-// soft keys
-/*
-int input_buttons()
-{
-    int final_code = 0;
-    int start_draw = 0;
-    int end_draw = 0;
-    gr_surface surface = gVirtualKeys;
-
-    int keywidth = gr_get_width(surface) / 4;
-    int keyoffset = (gr_fb_width() - gr_get_width(surface)) / 2;
-    if (touch_x < (keywidth + keyoffset + 1)) {
-        //down button
-        final_code = KEY_DOWN;
-        start_draw = keyoffset;
-        end_draw = keywidth + keyoffset;
-    } else if (touch_x < ((keywidth * 2) + keyoffset + 1)) {
-        //up button
-        final_code = KEY_UP;
-        start_draw = keywidth + keyoffset + 1;
-        end_draw = (keywidth * 2) + keyoffset;
-    } else if (touch_x < ((keywidth * 3) + keyoffset + 1)) {
-        //back button
-        final_code = KEY_BACK;
-        start_draw = (keywidth * 2) + keyoffset + 1;
-        end_draw = (keywidth * 3) + keyoffset;
-    } else if (touch_x < ((keywidth * 4) + keyoffset + 1)) {
-        //enter key
-        final_code = KEY_ENTER;
-        start_draw = (keywidth * 3) + keyoffset + 1;
-        end_draw = (keywidth * 4) + keyoffset;
-    }
-
-    if (touch_y > (gr_fb_height() - gr_get_height(surface)) && touch_x > 0) {
-        pthread_mutex_lock(&gUpdateMutex);
-        gr_color(0, 0, 0, 255); // clear old touch points
-        gr_fill(0, gr_fb_height()-gr_get_height(surface)-2, start_draw-1, gr_fb_height()-gr_get_height(surface));
-        gr_fill(end_draw+1, gr_fb_height()-gr_get_height(surface)-2, gr_fb_width(), gr_fb_height()-gr_get_height(surface));
-        gr_color(MENU_TEXT_COLOR);
-        gr_fill(start_draw, gr_fb_height()-gr_get_height(surface)-2, end_draw, gr_fb_height()-gr_get_height(surface));
-        gr_flip();
-        pthread_mutex_unlock(&gUpdateMutex);
-    }
-
-    if (in_touch == 1) {
-        return final_code;
-    } else {
-        return 0;
-    }
-}
-*/
-// end soft keys
+#ifdef KYLE_TOUCH_RECOVERY
+#include "/home/klaplante/recoverystuff/kyle_soft_keys.c"
+#endif
 int get_batt_stats(void)
 {
     static int level = -1;
