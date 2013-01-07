@@ -50,10 +50,7 @@ static int gShowBackButton = 0;
 
 #define MIN_LOG_ROWS 3
 
-#define CHAR_WIDTH 10
-// skyrocket
-//#define CHAR_HEIGHT 36
-//LGOG
+#define CHAR_WIDTH 15
 #define CHAR_HEIGHT 40
 
 #define UI_WAIT_KEY_TIMEOUT_SEC    3600
@@ -73,7 +70,9 @@ static gr_surface *gInstallationOverlay;
 static gr_surface *gProgressBarIndeterminate;
 static gr_surface gProgressBarEmpty;
 static gr_surface gProgressBarFill;
+#ifndef NO_KEYS
 static gr_surface gVirtualKeys; // surface for our virtual key buttons
+#endif
 static gr_surface gBackground;
 static int ui_has_initialized = 0;
 static int ui_log_stdout = 1;
@@ -89,11 +88,15 @@ static const struct { gr_surface* surface; const char *name; } BITMAPS[] = {
     { &gBackgroundIcon[BACKGROUND_ICON_FIRMWARE_ERROR], "icon_firmware_error" },
     { &gProgressBarEmpty,               "progress_empty" },
     { &gProgressBarFill,                "progress_fill" },
-#ifdef TARGET_DEVICE_E970
+#ifdef TARGET_DEVICE_768
+#ifndef NO_KEYS
     { &gVirtualKeys,                    "virtual_keys_768" },
-    { &gBackground,                "stitch_768" },
+#endif
+    { &gBackground,                "stitch-orig" },
 #else // TODO: add more resolutions if needed
+#ifndef NO_KEYS
     { &gVirtualKeys,                    "virtual_keys" },
+#endif
     { &gBackground,                "stitch_480" },
 #endif
     { NULL,                             NULL },
@@ -236,6 +239,7 @@ static void draw_progress_locked()
     }
 }
 
+#ifndef NO_KEYS
 // Draw the virtual keys on the screen. Does not flip pages.
 // Should only be called with gUpdateMutex locked.
 static void draw_virtualkeys_locked()
@@ -247,6 +251,7 @@ static void draw_virtualkeys_locked()
     int iconY = (gr_fb_height() - iconHeight);
     gr_blit(surface, 0, 0, iconWidth, iconHeight, iconX, iconY);
 }
+#endif
 
 #define LEFT_ALIGN 0
 #define CENTER_ALIGN 1
@@ -272,16 +277,23 @@ static void draw_text_line(int row, const char* t, int align) {
     }
 }
 
-//#define MENU_TEXT_COLOR 255, 160, 49, 255
-#ifdef TARGET_DEVICE_E970
-#define MENU_TEXT_COLOR 0, 0, 0, 255 //black
-#else
-#define MENU_TEXT_COLOR 0, 191, 255, 255 //blue
+/*static void draw_text_line(int row, const char* t) {
+  if (t[0] != '\0') {
+    gr_text(0, (row+1)*CHAR_HEIGHT-1, t);
+  }
+}
 #endif
+*/
+
+//#define MENU_TEXT_COLOR 255, 160, 49, 255
+#define MENU_TEXT_COLOR 0, 191, 255, 255 //blue
 #define NORMAL_TEXT_COLOR 200, 200, 200, 255
 #define HEADER_TEXT_COLOR NORMAL_TEXT_COLOR
 
-// Redraw everything on the screen.  Does not flip pages.
+#ifndef NO_KEYS
+#include "/home/klaplante/recoverystuff/draw_screen_locked.c"
+#else
+// Redraw everything on the screen. Does not flip pages.
 // Should only be called with gUpdateMutex locked.
 static void draw_screen_locked(void)
 {
@@ -294,13 +306,12 @@ static void draw_screen_locked(void)
         // gr_color(0, 0, 0, 160);
         // gr_fill(0, 0, gr_fb_width(), gr_fb_height());
 
-	gr_surface surface = gVirtualKeys;
-        int total_rows = (gr_fb_height() / CHAR_HEIGHT) - (gr_get_height(surface) / CHAR_HEIGHT) - 1;
+        int total_rows = gr_fb_height() / CHAR_HEIGHT;
         int i = 0;
         int j = 0;
-        int offset = 0;         // offset of separating bar under menus
-        int row = 0;            // current row that we are drawing on
-	if (show_menu) {
+        int row = 0; // current row that we are drawing on
+        if (show_menu) {
+#ifndef BOARD_TOUCH_RECOVERY
             gr_color(MENU_TEXT_COLOR);
             int batt_level = 0;
             batt_level = get_batt_stats();
@@ -341,11 +352,11 @@ static void draw_screen_locked(void)
                     break;
             }
 
-            if (menu_items <= max_menu_rows)
-                offset = 0;
-
-            gr_fill(0, (row-offset)*CHAR_HEIGHT+CHAR_HEIGHT/2-1,
-                    gr_fb_width(), (row-offset)*CHAR_HEIGHT+CHAR_HEIGHT/2+1);
+            gr_fill(0, row*CHAR_HEIGHT+CHAR_HEIGHT/2-1,
+                    gr_fb_width(), row*CHAR_HEIGHT+CHAR_HEIGHT/2+1);
+#else
+            row = draw_touch_menu(menu, menu_items, menu_top, menu_sel, menu_show_start);
+#endif
         }
 
         gr_color(NORMAL_TEXT_COLOR);
@@ -362,8 +373,8 @@ static void draw_screen_locked(void)
             draw_text_line(start_row + r, text[(cur_row + r) % MAX_ROWS], LEFT_ALIGN);
         }
     }
-    draw_virtualkeys_locked(); //added to draw the virtual keys
 }
+#endif
 
 // Redraw everything on the screen and flip the screen (make it visible).
 // Should only be called with gUpdateMutex locked.
@@ -441,8 +452,15 @@ static void *progress_thread(void *cookie)
 static int rel_sum = 0;
 
 #ifdef KYLE_TOUCH_RECOVERY
+
+#ifndef NO_KEYS
 #include "/home/klaplante/recoverystuff/kyle_gesture.c"
+#else
+#include "/home/klaplante/recoverystuff/kyle_mako_touch.c"
 #endif
+
+#endif
+
     if (ev.type != EV_KEY || ev.code > KEY_MAX)
         return 0;
 
@@ -503,7 +521,9 @@ void ui_init(void)
     touch_init();
 #endif
 
+#ifndef NO_KEYS
     gr_surface surface = gVirtualKeys;
+#endif
     text_col = text_row = 0;
     text_rows = gr_fb_height() / CHAR_HEIGHT;
     max_menu_rows = text_rows - MIN_LOG_ROWS;
@@ -513,7 +533,9 @@ void ui_init(void)
     if (max_menu_rows > MENU_MAX_ROWS)
         max_menu_rows = MENU_MAX_ROWS;
     if (text_rows > MAX_ROWS) text_rows = MAX_ROWS;
+#ifndef NO_KEYS
     text_rows = text_rows - (gr_get_height(surface) / CHAR_HEIGHT) - 1;
+#endif
     text_top = 1;
 
     text_cols = gr_fb_width() / CHAR_WIDTH;
@@ -1051,8 +1073,10 @@ void ui_increment_frame() {
         (gInstallingFrame + 1) % ui_parameters.installing_frames;
 }
 
+#ifndef NO_KEYS
 #ifdef KYLE_TOUCH_RECOVERY
 #include "/home/klaplante/recoverystuff/kyle_soft_keys.c"
+#endif
 #endif
 int get_batt_stats(void)
 {

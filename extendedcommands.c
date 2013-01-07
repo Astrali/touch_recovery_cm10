@@ -42,9 +42,9 @@
 #include "bmlutils/bmlutils.h"
 #include "cutils/android_reboot.h"
 #include "kyle.h"
-
+#include "device_config.h"
 int signature_check_enabled = 1;
-int script_assert_enabled = 1;
+int script_assert_enabled = 0;
 static const char *SDCARD_UPDATE_FILE = "/sdcard/update.zip";
 
 int
@@ -900,25 +900,23 @@ void show_partition_menu()
             options[mountable_volumes+i] = e->txt;
         }
 
-//#ifndef RECOVERY_DATAMEDIA_AND_SDCARD
+	// CREDIT: PhilZ
+        //Mount usb storage support for /data/media devices, by PhilZ (part 1/2)
         if (!is_data_media()) {
-          options[mountable_volumes + formatable_volumes] = "mount USB storage";
-          options[mountable_volumes + formatable_volumes + 1] = NULL;
+            options[mountable_volumes + formatable_volumes] = "mount USB storage";
+            options[mountable_volumes + formatable_volumes + 1] = NULL;
+        } else {
+            options[mountable_volumes + formatable_volumes] = "format /data and /data/media (/sdcard)";
+            options[mountable_volumes + formatable_volumes + 1] = "mount USB storage";
+            options[mountable_volumes + formatable_volumes + 2] = NULL;
         }
-        else {
-          options[mountable_volumes + formatable_volumes] = "format /data and /data/media (/sdcard)";
-          options[mountable_volumes + formatable_volumes + 1] = NULL;
-        }
-//#else
-//	 options[mountable_volumes + formatable_volumes] = "mount USB storage";
-//         options[mountable_volumes + formatable_volumes + 1] = NULL;
-//#endif
+        //end PhilZ support for mount usb storage on /data/media (part 1/2)
 
         int chosen_item = get_menu_selection(headers, &options, 0, 0);
         if (chosen_item == GO_BACK)
             break;
         if (chosen_item == (mountable_volumes+formatable_volumes)) {
-	    if (!is_data_media()) {
+            if (!is_data_media()) {
                 show_mount_usb_storage_menu();
             }
             else {
@@ -933,6 +931,12 @@ void show_partition_menu()
                 handle_data_media_format(0);
             }
         }
+	// CREDIT: PhilZ
+        //Mount usb storage support for /data/media devices, by PhilZ (part 2/2)
+        else if (is_data_media() && chosen_item == (mountable_volumes+formatable_volumes+1)) {
+            show_mount_usb_storage_menu();
+        }
+        //end PhilZ support for mount usb storage on /data/media
         else if (chosen_item < mountable_volumes) {
             MountMenuEntry* e = &mount_menu[chosen_item];
             Volume* v = e->v;
@@ -1089,6 +1093,38 @@ static void choose_default_backup_format() {
     }
 }
 
+
+//support custom rom name (by PhilZ)
+//always call with rom_name[PROPERTY_VALUE_MAX]
+#define MAX_ROM_NAME_LENGTH 31
+int get_rom_name(char *rom_name) {
+    sprintf(rom_name, "noname");
+    const char *rom_id_key[] = { "ro.modversion", "ro.romversion", "ro.build.display.id", NULL };
+    char* key;
+    int i = 0;
+    while ((key = rom_id_key[i]) != NULL && strcmp(rom_name, "noname") == 0) {
+        property_get(key, rom_name, "noname"); //trailing null character added
+        i++;
+    }
+    //remove non allowed chars (invalid file names) and limit rom_name to MAX_ROM_NAME_LENGTH chars
+    //we could use a whitelist: ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-
+    char invalid_fn[] = " /><%#*^$:;\"\\\t,?!{}()=+'¦|";
+    for(i=0; rom_name[i] != '\0' && i < MAX_ROM_NAME_LENGTH; i++) {
+        int j = 0;
+        while (j < strlen(invalid_fn)) {
+            if (rom_name[i] == invalid_fn[j]) {
+                rom_name[i] = '_';
+            }
+            j++;
+        }
+    }
+    rom_name[MAX_ROM_NAME_LENGTH] = '\0';
+    if (rom_name[strlen(rom_name)-1] == '_') {
+        rom_name[strlen(rom_name)-1] = '\0';
+    }
+    return 0;
+}
+
 void show_nandroid_menu()
 {
     static char* headers[] = {  "Backup and Restore",
@@ -1139,17 +1175,26 @@ void show_nandroid_menu()
             case 0:
                 {
                     char backup_path[PATH_MAX];
+#ifdef KYLE_TOUCH_RECOVERY
+                    time_t t = time(NULL) + t_zone;
+#else
                     time_t t = time(NULL);
-                    struct tm *tmp = localtime(&t);
-                    if (tmp == NULL)
+#endif
+		    char rom_name[PROPERTY_VALUE_MAX];
+		    get_rom_name(rom_name);
+
+		    struct tm *timeptr = localtime(&t);
+		    if (timeptr == NULL)
                     {
                         struct timeval tp;
                         gettimeofday(&tp, NULL);
-                        sprintf(backup_path, "/sdcard/clockworkmod/backup/%d", tp.tv_sec);
+			sprintf(backup_path, "/sdcard/clockworkmod/backup/%d_%s", tp.tv_sec, rom_name);
                     }
                     else
                     {
-                        strftime(backup_path, sizeof(backup_path), "/sdcard/clockworkmod/backup/%F.%H.%M.%S", tmp);
+			char tmp[PATH_MAX];
+			strftime(tmp, sizeof(tmp), "/sdcard/clockworkmod/backup/%F.%H.%M.%S", timeptr);
+			sprintf(backup_path, "%s_%s",tmp, rom_name);
                     }
                     nandroid_backup(backup_path);
                 }
@@ -1172,14 +1217,21 @@ void show_nandroid_menu()
             case 6:
                 {
                     char backup_path[PATH_MAX];
+#ifdef KYLE_TOUCH_RECOVERY
+                    time_t t = time(NULL) + t_zone;
+#else
                     time_t t = time(NULL);
+#endif
+		    char rom_name[PROPERTY_VALUE_MAX];
+		    get_rom_name(rom_name);
+
                     struct tm *timeptr = localtime(&t);
                     if (timeptr == NULL)
                     {
                         struct timeval tp;
                         gettimeofday(&tp, NULL);
                         if (other_sd != NULL) {
-                            sprintf(backup_path, "%s/clockworkmod/backup/%d", other_sd, tp.tv_sec);
+			    sprintf(backup_path, "%s/clockworkmod/backup/%d_%s", other_sd, tp.tv_sec, rom_name);
                         }
                         else {
                             break;
@@ -1192,7 +1244,7 @@ void show_nandroid_menu()
                             strftime(tmp, sizeof(tmp), "clockworkmod/backup/%F.%H.%M.%S", timeptr);
                             // this sprintf results in:
                             // /sdcard/clockworkmod/backup/%F.%H.%M.%S (time values are populated too)
-                            sprintf(backup_path, "%s/%s", other_sd, tmp);
+                            sprintf(backup_path, "%s/%s_%s", other_sd, tmp, rom_name);
                         }
                         else {
                             break;
@@ -1302,15 +1354,27 @@ void show_advanced_menu()
     };
 
     static char* list[] = { "reboot recovery",
-			    "reboot download",
                             "wipe dalvik cache",
                             "report error",
                             "key test",
                             "show log",
                             "fix permissions",
 			    "sk8's fix permissions",
+			    "partition sdcard",
+			    "partition external sdcard",
+			    "partition internal sdcard",
                             NULL
     };
+
+    if (!can_partition("/sdcard")) {
+        list[8] = NULL;
+    }
+    if (!can_partition("/external_sd")) {
+        list[9] = NULL;
+    }
+    if (!can_partition("/emmc")) {
+        list[10] = NULL;
+    }
 
     for (;;)
     {
@@ -1323,9 +1387,6 @@ void show_advanced_menu()
                 android_reboot(ANDROID_RB_RESTART2, 0, "recovery");
                 break;
             case 1:
-                android_reboot(ANDROID_RB_RESTART2, 0, "download");
-                break;
-            case 2:
                 if (0 != ensure_path_mounted("/data"))
                     break;
                 ensure_path_mounted("/sd-ext");
@@ -1338,10 +1399,10 @@ void show_advanced_menu()
                 }
                 ensure_path_unmounted("/data");
                 break;
-            case 3:
+            case 2:
                 handle_failure(1);
                 break;
-            case 4:
+            case 3:
             {
                 ui_print("Outputting key codes.\n");
                 ui_print("Go back to end debugging.\n");
@@ -1356,10 +1417,10 @@ void show_advanced_menu()
                 while (action != GO_BACK);
                 break;
             }
-            case 5:
+            case 4:
                 ui_printlogtail(12);
                 break;
-            case 6:
+            case 5:
                 ensure_path_mounted("/system");
                 ensure_path_mounted("/data");
                 ensure_path_mounted("/sdcard");
@@ -1367,13 +1428,22 @@ void show_advanced_menu()
                 __system("fix_permissions");
                 ui_print("Done!\n");
                 break;
-	    case 7:
+	    case 6:
                	ensure_path_mounted("/system");
                 ensure_path_mounted("/data");
                 ui_print("Fixing permissions & removing stale directories (logging disabled)...\n");
                 __system("fix_permissions -l -r");
                 ui_print("Done!\n");
 		break;
+            case 7:
+                partition_sdcard("/sdcard");
+                break;
+            case 8:
+                partition_sdcard("/external_sd");
+                break;
+            case 9:
+                partition_sdcard("/emmc");
+                break;
       }
    }
 }

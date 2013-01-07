@@ -37,6 +37,10 @@ void device_ui_init(UIParameters* ui_parameters) {
 }
 
 int device_recovery_start() {
+#ifdef KYLE_TOUCH_RECOVERY
+    //these must be called before fast_ui_init()
+    apply_time_zone(0);
+#endif
     return 0;
 }
 

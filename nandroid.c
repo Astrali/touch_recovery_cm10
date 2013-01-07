@@ -41,7 +41,11 @@
 
 void nandroid_generate_timestamp_path(const char* backup_path)
 {
+#ifdef KYLE_TOUCH_RECOVERY
+    time_t t = time(NULL) + t_zone;
+#else
     time_t t = time(NULL);
+#endif
     struct tm *tmp = localtime(&t);
     if (tmp == NULL)
     {
@@ -206,8 +210,10 @@ static void refresh_default_backup_handler() {
     else {
         ensure_path_mounted("/sdcard");
         FILE* f = fopen(NANDROID_BACKUP_FORMAT_FILE, "r");
-        if (NULL == f)
-            return;
+        if (NULL == f) {
+	    default_backup_handler = tar_compress_wrapper;
+	    return;
+	}
         fread(fmt, 1, sizeof(fmt), f);
         fclose(f);
     }
@@ -376,6 +382,15 @@ int nandroid_backup(const char* backup_path)
     if (0 != (ret = nandroid_backup_partition(backup_path, "/system")))
         return ret;
 
+#ifdef KYLE_TOUCH_RECOVERY
+    if (quick_toggle_chk(ENABLE_PRELOAD_FILE, 0)) {
+        if (0 != (ret = nandroid_backup_partition(backup_path, "/preload"))) {
+            //return ret;
+            ui_print("Skipping backup of /preload...\n");
+        }
+    }
+#endif
+
     if (0 != (ret = nandroid_backup_partition(backup_path, "/data")))
         return ret;
 
@@ -384,31 +399,30 @@ int nandroid_backup(const char* backup_path)
             return ret;
     }
 
+#ifdef BOARD_HAS_REMOVABLE_STORAGE
     ensure_path_mounted("/sdcard");
     if( access( "/sdcard/clockworkmod/.is_as_external", F_OK ) != -1) {
         ensure_path_mounted("/external_sd");
-        if (0 != stat("/external_sd/.android_secure", &s))
-        {
+	if (0 != stat("/external_sd/.android_secure", &s)) {
             ui_print("No /external_sd/.android_secure found...\n");
         }
-        else
-        {
+        else {
             if (0 != (ret = nandroid_backup_partition_extended(backup_path, "/external_sd/.android_secure", 0)))
                 return ret;
         }
     } else {
+#endif
         ensure_path_mounted("/sdcard");
-        if (0 != stat("/sdcard/.android_secure", &s))
-        {
+	if (is_data_media() || 0 != stat("/sdcard/.android_secure", &s)) {
             ui_print("No /sdcard/.android_secure found...\n");
         }
-        else
-        {
+        else {
             if (0 != (ret = nandroid_backup_partition_extended(backup_path, "/sdcard/.android_secure", 0)))
                 return ret;
         }
+#ifdef BOARD_HAS_REMOVABLE_STORAGE
     }
-
+#endif
     if (0 != (ret = nandroid_backup_partition_extended(backup_path, "/cache", 0)))
         return ret;
 
@@ -425,13 +439,18 @@ int nandroid_backup(const char* backup_path)
             return ret;
     }
 
-    ui_print("Generating md5 sum...\n");
-    sprintf(tmp, "nandroid-md5.sh %s", backup_path);
-    if (0 != (ret = __system(tmp))) {
-        ui_print("Error while generating md5 sum!\n");
-        return ret;
+#ifdef KYLE_TOUCH_RECOVERY
+    if (!quick_toggle_chk(DISABLE_NANDROID_MD5_FILE, 0))
+#endif
+    {
+        ui_print("Generating md5 sum...\n");
+        sprintf(tmp, "nandroid-md5.sh %s", backup_path);
+        if (0 != (ret = __system(tmp))) {
+            ui_print("Error while generating md5 sum!\n");
+            return ret;
+        }
     }
-    
+
     sprintf(tmp, "chmod -R 777 %s ; chmod -R u+r,u+w,g+r,g+w,o+r,o+w /external_sd/clockworkmod ; chmod u+x,g+x,o+x /sdcard/clockworkmod/backup ; chmod u+x,g+x,o+x /sdcard/clockworkmod/blobs", backup_path);
     __system(tmp);
     sync();
@@ -684,11 +703,16 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     
     char tmp[PATH_MAX];
 
-    ui_print("Checking MD5 sums...\n");
-    sprintf(tmp, "cd %s && md5sum -c nandroid.md5", backup_path);
-    if (0 != __system(tmp))
-        return print_and_error("MD5 mismatch!\n");
-    
+#ifdef KYLE_TOUCH_RECOVERY
+    if (!quick_toggle_chk(DISABLE_NANDROID_MD5_FILE, 0))
+#endif
+    {
+        ui_print("Checking MD5 sums...\n");
+        sprintf(tmp, "cd %s && md5sum -c nandroid.md5", backup_path);
+        if (0 != __system(tmp))
+            return print_and_error("MD5 mismatch!\n");
+    }
+
     int ret;
 
     if (restore_boot && NULL != volume_for_path("/boot") && 0 != (ret = nandroid_restore_partition(backup_path, "/boot")))
@@ -726,6 +750,15 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     if (restore_system && 0 != (ret = nandroid_restore_partition(backup_path, "/system")))
         return ret;
 
+#ifdef KYLE_TOUCH_RECOVERY
+    if (quick_toggle_chk(ENABLE_PRELOAD_FILE, 0)) {
+        if (restore_system && 0 != (ret = nandroid_restore_partition(backup_path, "/preload"))) {
+            //return ret;
+            ui_print("Skipping restore of /preload...\n");
+        }
+    }
+#endif
+
     if (restore_data && 0 != (ret = nandroid_restore_partition(backup_path, "/data")))
         return ret;
         
@@ -735,17 +768,20 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     }
 
     ensure_path_mounted("/sdcard");
+#ifdef BOARD_HAS_REMOVABLE_STORAGE
     if( access( "/sdcard/clockworkmod/.is_as_external", F_OK ) != -1) {
         if (restore_data && 0 != (ret = nandroid_restore_partition_extended(backup_path, "/external_sd/.android_secure", 0))) {
             return ret;
         }
     }
     else {
+#endif
         if (restore_data && 0 != (ret = nandroid_restore_partition_extended(backup_path, "/sdcard/.android_secure", 0))) {
             return ret;
         }
+#ifdef BOARD_HAS_REMOVABLE_STORAGE
     }
-
+#endif
     if (restore_cache && 0 != (ret = nandroid_restore_partition_extended(backup_path, "/cache", 0)))
         return ret;
 
