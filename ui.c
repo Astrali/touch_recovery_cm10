@@ -454,9 +454,9 @@ static int rel_sum = 0;
 #ifdef KYLE_TOUCH_RECOVERY
 
 #ifndef NO_KEYS
-#include "/home/klaplante/recoverystuff/kyle_gesture.c"
+#include "/home/klaplante/recoverystuff/kyle_touch_keys.c"
 #else
-#include "/home/klaplante/recoverystuff/kyle_mako_touch.c"
+#include "/home/klaplante/recoverystuff/kyle_touch_nokeys.c"
 #endif
 
 #endif

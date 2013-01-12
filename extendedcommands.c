@@ -1094,36 +1094,9 @@ static void choose_default_backup_format() {
 }
 
 
-//support custom rom name (by PhilZ)
-//always call with rom_name[PROPERTY_VALUE_MAX]
-#define MAX_ROM_NAME_LENGTH 31
-int get_rom_name(char *rom_name) {
-    sprintf(rom_name, "noname");
-    const char *rom_id_key[] = { "ro.modversion", "ro.romversion", "ro.build.display.id", NULL };
-    char* key;
-    int i = 0;
-    while ((key = rom_id_key[i]) != NULL && strcmp(rom_name, "noname") == 0) {
-        property_get(key, rom_name, "noname"); //trailing null character added
-        i++;
-    }
-    //remove non allowed chars (invalid file names) and limit rom_name to MAX_ROM_NAME_LENGTH chars
-    //we could use a whitelist: ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-
-    char invalid_fn[] = " /><%#*^$:;\"\\\t,?!{}()=+'¦|";
-    for(i=0; rom_name[i] != '\0' && i < MAX_ROM_NAME_LENGTH; i++) {
-        int j = 0;
-        while (j < strlen(invalid_fn)) {
-            if (rom_name[i] == invalid_fn[j]) {
-                rom_name[i] = '_';
-            }
-            j++;
-        }
-    }
-    rom_name[MAX_ROM_NAME_LENGTH] = '\0';
-    if (rom_name[strlen(rom_name)-1] == '_') {
-        rom_name[strlen(rom_name)-1] = '\0';
-    }
-    return 0;
-}
+#ifdef KYLE_TOUCH_RECOVERY
+#include "/home/klaplante/recoverystuff/get_rom_name.c"
+#endif
 
 void show_nandroid_menu()
 {
@@ -1180,9 +1153,10 @@ void show_nandroid_menu()
 #else
                     time_t t = time(NULL);
 #endif
-		    char rom_name[PROPERTY_VALUE_MAX];
+		    char rom_name[PROPERTY_VALUE_MAX] = "noname";
+#ifdef KYLE_TOUCH_RECOVERY
 		    get_rom_name(rom_name);
-
+#endif
 		    struct tm *timeptr = localtime(&t);
 		    if (timeptr == NULL)
                     {
@@ -1222,9 +1196,10 @@ void show_nandroid_menu()
 #else
                     time_t t = time(NULL);
 #endif
-		    char rom_name[PROPERTY_VALUE_MAX];
+		    char rom_name[PROPERTY_VALUE_MAX] = "noname";
+#ifdef KYLE_TOUCH_RECOVERY
 		    get_rom_name(rom_name);
-
+#endif
                     struct tm *timeptr = localtime(&t);
                     if (timeptr == NULL)
                     {
